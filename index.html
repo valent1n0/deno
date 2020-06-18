@@ -1,0 +1,131 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Deno Game</title>
+        <style>
+            html,
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin: 5px;
+                padding: 0;
+            }
+            #game {
+                border: 1px solid black;
+            }
+        </style>    
+    </head>
+    <body>
+        <div>
+            <input id="name" type="text" placeholder="Enter name" />
+            <button onclick="joinGame()">Join game</button>
+        </div>
+        <script>
+        </script>
+
+        <script>
+            
+            let rectX = 0;
+            let rectY = 0;
+            let ws;
+
+            const size = 20;
+            const step = 10;
+
+            window.addEventListener('keydown', onKeyDown);
+
+            function joinGame() {
+                // let ws;
+                let nameInput = document.getElementById('name');
+                if (!nameInput || !nameInput.value) 
+                    alert('Invalid name!');
+
+                let canvas = document.createElement('canvas');
+                let body = document.getElementsByTagName('body')[0];
+                canvas.setAttribute('width', '500px');
+                canvas.setAttribute('height', '500px');
+                canvas.setAttribute('id', 'game');
+                body.innerHTML = '';
+                body.appendChild(canvas);
+                context = canvas.getContext('2d');
+                ws = new WebSocket('ws://localhost:3000/ws');ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    type: 'join',
+                    name: nameInput.value
+                }));
+                }
+                ws.onmessage = (event) => {
+                    message = JSON.parse(event.data);
+                    drawPlayers(canvas, message.players);
+                }
+                
+            }
+
+            function drawPlayers(canvas, players) {
+                let context = canvas.getContext('2d');
+
+                // Clear canvas
+                context.beginPath();
+                context.fillStyle = "#ffffff";
+                context.fillRect(0, 0,  canvas.width, canvas.height);
+
+                // Draw each player
+                context.beginPath();
+                context.font = "10px Arial";
+                players.forEach( p => {
+                  context.fillStyle = p.color;
+                  context.fillRect(p.x, p.y, size, size);
+                  context.fillText(p.name.toUpperCase(), p.x - size / 2, p.y + size + 10);
+                })
+            } 
+            
+            function getRandomColor() {
+                var letters = '0123456789ABCDEF';
+                var color = '#';
+                for (var i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+
+            function onKeyDown(e) {
+                switch (e.keyCode) {
+                    case 39:
+                        rectX += step;
+                        sendNewData(rectX, rectY);
+                    break;
+
+                    case 37:
+                        rectX -= step;
+                        sendNewData(rectX, rectY);
+                    break;
+
+                    case 38:
+                        rectY -= step;
+                        sendNewData(rectX, rectY);
+                    break;
+
+                    case 40:
+                        rectY += step;
+                        sendNewData(rectX, rectY);
+                    break;
+
+                    default:
+                    break;
+                }
+            }
+            
+            function sendNewData(x, y) {
+                ws.send(JSON.stringify({
+                    type: 'update',
+                    data: {
+                        x: x,
+                        y: y,
+                    }
+                }));
+            }
+            
+        </script>
+    </body>
+</html>
